@@ -41,6 +41,7 @@ struct NodeMap
     NodeMap *right = nullptr;
     NodeMap *up = nullptr;
     NodeMap *down = nullptr;
+    NodeMap *previous = nullptr;
 
     char symbol;
     size_t position;
@@ -130,21 +131,31 @@ struct Map
     }
     bool AddGuardRoute()
     {
+        std::vector<NodeMap> trace{};
         while (this->isGuardOnMap())
         {
             // std::cout << "found\n";
             // → ← ↓ ↑
             NodeMap &guard = this->GetGuard();
+            if (std::find_if(trace.cbegin(), trace.cend(), [guard](const NodeMap &traceNode)
+                {
+                    return (traceNode.position == guard.position) and (traceNode.symbol == guard.symbol);
+                }) != trace.cend())
+            {
+                // if (guard.previous != nullptr) and (guard.previous->position ==)
+                std::cout << "loop\n";
+                return true;
+            }
+            trace.push_back(guard);
             // std::cout << "guard at: " << guard.position << "\n";
             if (guard.symbol == '^')
             {
                 if (guard.up == nullptr)
                 {
-                    // guard.symbol = 'X';
-                    guard.symbol = 'u';
+                    guard.symbol = 'X';
                     continue;
                 }
-                if (guard.up->symbol == 'u')
+                if ((guard.up->symbol == 'u') or (guard.up->symbol == '+'))
                 {
                     std::cout << "loop\n";
                     return true;
@@ -152,6 +163,7 @@ struct Map
                 if (guard.up->symbol != '#')
                 {
                     guard.up->symbol = '^';
+                    guard.up->previous = &guard;
                     // guard.symbol = 'X';
                     guard.symbol = 'u';
                 }
@@ -164,11 +176,10 @@ struct Map
             {
                 if (guard.down == nullptr)
                 {
-                    // guard.symbol = 'X';
-                    guard.symbol = 'd';
+                    guard.symbol = 'X';
                     continue;
                 }
-                if (guard.down->symbol == 'd')
+                if ((guard.down->symbol == 'd') or (guard.up->symbol == '+'))
                 {
                     std::cout << "loop\n";
                     return true;
@@ -176,6 +187,7 @@ struct Map
                 if (guard.down->symbol != '#')
                 {
                     guard.down->symbol = 'J';
+                    guard.up->previous = &guard;
                     // guard.symbol = 'X';
                     guard.symbol = 'd';
                 }
@@ -188,11 +200,10 @@ struct Map
             {
                 if (guard.right == nullptr)
                 {
-                    // guard.symbol = 'X';
-                    guard.symbol = 'r';
+                    guard.symbol = 'X';
                     continue;
                 }
-                if (guard.right->symbol == 'r')
+                if ((guard.right->symbol == 'r') or (guard.up->symbol == '+'))
                 {
                     std::cout << "loop\n";
                     return true;
@@ -200,6 +211,7 @@ struct Map
                 if (guard.right->symbol != '#')
                 {
                     guard.right->symbol = '>';
+                    guard.up->previous = &guard;
                     // guard.symbol = 'X';
                     guard.symbol = 'r';
                 }
@@ -212,11 +224,10 @@ struct Map
             {
                 if (guard.left == nullptr)
                 {
-                    // guard.symbol = 'X';
-                    guard.symbol = 'l';
+                    guard.symbol = 'X';
                     continue;
                 }
-                if (guard.left->symbol == 'l')
+                if ((guard.left->symbol == 'l') or (guard.up->symbol == '+'))
                 {
                     std::cout << "loop\n";
                     return true;
@@ -224,6 +235,7 @@ struct Map
                 if (guard.left->symbol != '#')
                 {
                     guard.left->symbol = '<';
+                    guard.up->previous = &guard;
                     // guard.symbol = 'X';
                     guard.symbol = 'l';
                 }
@@ -237,6 +249,8 @@ struct Map
     }
     void CheckAllOptions()
     {
+        // i: 1597, options: 21 - 9%
+        // i: 2000, options: 49 - 11%
         int total{};
         std::vector<NodeMap> oldMap = this->nodes;
         for (size_t i=0; i<this->nodes.size(); i++)
