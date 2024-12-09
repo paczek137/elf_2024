@@ -155,10 +155,10 @@ struct Satellites
         std::vector<Satellite*> listOfUniqueAntinodes;
         for (const auto &el : this->pairsOfSatellites)
         {
-            int x1{};
-            int x2{};
-            int y1{};
-            int y2{};
+            int x1 = el.first->x;
+            int x2 = el.second->x;
+            int y1 = el.first->y;
+            int y2 = el.second->y;
             if (freq != el.first->frequency)
             {
                 listOfUniqueAntinodes.clear();
@@ -169,52 +169,64 @@ struct Satellites
             std::cout << "P1: (" << el.first->x << ", " << el.first->y << "), P2: (" 
                       << el.second->x << ", " << el.second->y << ")\n";
             std::cout << "x_diff: " << x_diff << ", y_diff: " << y_diff << "\n";
-            if (el.first->x > el.second->x)
-            {
-                x1 = el.first->x + x_diff ;
-                x2 = el.second->x - x_diff;
-            }
-            else
-            {
-                x1 = el.first->x - x_diff;
-                x2 = el.second->x + x_diff;
-            }
 
-            y1 = el.first->y - y_diff;
-            y2 = el.second->y + y_diff;
+            while ( ((x1 < this->width) and (x1 >= 0) and
+                    (y1 < this->height) and (y1 >= 0)) or
+                    ((x2 < this->width) and (x2 >= 0) and
+                    (y2 < this->height) and (y2 >= 0)))
+            {
 
-            if ( (x1 < this->width) and (x1 >= 0) and
-                 (y1 < this->height) and (y1 >= 0) )
-                 // (not this->isAlreadyInList(listOfUniqueAntinodes, x1, y1)))
-            {
-                std::cout << "F: " << el.first->frequency << " Adding in P: (" << x1 << ", " << y1 << ")\n";
-                if (this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1)).frequency != '#')
+                if (el.first->x > el.second->x)
                 {
-                    this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1)).frequency = '#';
-                    this->antinodesCount++;
-                    listOfUniqueAntinodes.push_back(&(this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1))));
+                    x1 = x1 + x_diff ;
+                    x2 = x2 - x_diff;
                 }
-                
+                else
+                {
+                    x1 = x1 - x_diff;
+                    x2 = x2 + x_diff;
+                }
+
+                y1 = y1 - y_diff;
+                y2 = y2 + y_diff;
+
+                if ( (x1 < this->width) and (x1 >= 0) and
+                     (y1 < this->height) and (y1 >= 0) )
+                     // (not this->isAlreadyInList(listOfUniqueAntinodes, x1, y1)))
+                {
+                    std::cout << "F: " << el.first->frequency << " Adding in P: (" << x1 << ", " << y1 << ")\n";
+                    // if ( (this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1)).frequency == '.') or
+                    //      (this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1)).frequency == '#'))
+                    if (this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1)).frequency != '#')
+                    {
+                        this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1)).frequency = '#';
+                        this->antinodesCount++;
+                        listOfUniqueAntinodes.push_back(&(this->GetSatellite(static_cast<size_t>(x1), static_cast<size_t>(y1))));
+                    }
+                    
+                }
+                if ( (x2 < this->width) and (x2 >= 0) and
+                     (y2 < this->height) and (y2 >= 0))
+                     // (not this->isAlreadyInList(listOfUniqueAntinodes, x2, y2)))
+                {
+                    std::cout << "F: " << el.first->frequency << " Adding in P: (" << x2 << ", " << y2 << ")\n";
+                    // if ( (this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2)).frequency == '.') or
+                    //      (this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2)).frequency == '#'))
+                    if (this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2)).frequency != '#')
+                    {
+                        this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2)).frequency = '#';
+                        this->antinodesCount++;
+                        listOfUniqueAntinodes.push_back(&(this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2))));
+                    }
+                }
             }
-            if ( (x2 < this->width) and (x2 >= 0) and
-                 (y2 < this->height) and (y2 >= 0))
-                 // (not this->isAlreadyInList(listOfUniqueAntinodes, x2, y2)))
-            {
-                std::cout << "F: " << el.first->frequency << " Adding in P: (" << x2 << ", " << y2 << ")\n";
-                if (this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2)).frequency != '#')
-                {
-                    this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2)).frequency = '#';
-                    this->antinodesCount++;
-                    listOfUniqueAntinodes.push_back(&(this->GetSatellite(static_cast<size_t>(x2), static_cast<size_t>(y2))));
-                }
-            }   
         }
     }
     int GetAllAntinodes()
     {
         return std::accumulate(this->satellites.cbegin(), this->satellites.cend(), 0, [](int sum, const Satellite &sat)
                                 {
-                                    return sum + ((sat.frequency == '#') ? 1 : 0);
+                                    return sum + ((sat.frequency != '.') ? 1 : 0);
                                 });
     }
 };
@@ -227,10 +239,8 @@ int main()
     std::filesystem::path cwd = std::filesystem::current_path().filename();
     cout << "Hello World: " << cwd << endl;
 
-    // string filename("example_input"); // 14
-    string filename("input"); // 276
-    // All antinodes: 263 // too low
-    // All antinodes: 286 // too high
+    // string filename("example_input"); // 34
+    string filename("input");
     ifstream input_file(filename);
 
     string line{};
@@ -256,7 +266,7 @@ int main()
     sat.FillOffPairsOfSatellites();
     sat.AddAntinodes();
     std::cout << sat << "\n";
-    std::cout << "All antinodes: " << sat.GetAllAntinodes() << "\n";
+    std::cout << "All antinodes: " << sat.GetAllAntinodes() << " -> this is the answer\n";
     std::cout << "All antinodes: " << sat.antinodesCount << "\n";
 
 
