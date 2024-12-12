@@ -1,4 +1,4 @@
-#include <algorithm>
+ #include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <iostream>
@@ -49,6 +49,26 @@ struct FenceNode
     FenceNode (const char _symbol) : symbol(_symbol){}
     FenceNode (const char _symbol, const size_t _x, const size_t _y) : 
                 symbol(_symbol), x(_x), y(_y)  {}
+
+    size_t GetNumberOfNeighbours() const
+    {
+        return static_cast<size_t>(this->HasNeighbour(this->left)) +
+               static_cast<size_t>(this->HasNeighbour(this->right)) +
+               static_cast<size_t>(this->HasNeighbour(this->up)) +
+               static_cast<size_t>(this->HasNeighbour(this->down));
+    }
+    bool HasNeighbour(const FenceNode* node) const
+    {
+        return (node != nullptr) ? ((*node).symbol == this->symbol) : false;
+    }
+
+    bool HasAnyNeighbour() const
+    {
+        return this->HasNeighbour(this->left) or
+               this->HasNeighbour(this->right) or
+               this->HasNeighbour(this->up) or 
+               this->HasNeighbour(this->down); 
+    }
 
     static std::string const ToString(const FenceNode &node)
     {
@@ -169,46 +189,94 @@ struct Fences
                 if (((node.down != nullptr) and ((*(node.down)).symbol != node.symbol)) or
                     ((node.y == this->height-1) and (node.down == nullptr))) {perimeter++;}
 
-                if (((((node.left != nullptr) and ((*(node.left)).symbol != node.symbol)) or 
-                      ((node.x == 0) and (node.left == nullptr))) and
-                    (((node.up != nullptr) and ((*(node.up)).symbol != node.symbol)) or 
-                     ((node.y == 0) and (node.up == nullptr)))) or
-                     ((node.left != nullptr) and (node.up != nullptr) and ((*(node.left)).up != nullptr) and
-                       ((*(node.left)).symbol == node.symbol) and ((*(node.up)).symbol != node.symbol) and 
-                       ((*((*(node.left)).up)).symbol == node.symbol) )) {sides++;}
-                if (((((node.left != nullptr) and ((*(node.left)).symbol != node.symbol)) or 
-                      ((node.x == 0) and (node.left == nullptr))) and
-                    (((node.down != nullptr) and ((*(node.down)).symbol != node.symbol)) or 
-                     ((node.y == this->height-1) and (node.down == nullptr)))) or
-                     ((node.left != nullptr) and (node.down != nullptr) and ((*(node.left)).down != nullptr) and
-                       ((*(node.left)).symbol == node.symbol) and ((*(node.down)).symbol != node.symbol) and 
-                       ((*((*(node.left)).down)).symbol == node.symbol) )) {sides++;}
-                if (((((node.right != nullptr) and ((*(node.right)).symbol != node.symbol)) or 
-                      ((node.x == this->width-1) and (node.right == nullptr))) and
-                    (((node.up != nullptr) and ((*(node.up)).symbol != node.symbol)) or 
-                     ((node.y == 0) and (node.up == nullptr)))) or
-                     ((node.right != nullptr) and (node.up != nullptr) and ((*(node.right)).up != nullptr) and
-                       ((*(node.right)).symbol == node.symbol) and ((*(node.up)).symbol != node.symbol) and
-                       ((*((*(node.right)).up)).symbol == node.symbol) )) {sides++;}
-                if (((((node.right != nullptr) and ((*(node.right)).symbol != node.symbol)) or 
-                      ((node.x == this->width-1) and (node.right == nullptr))) and
-                    (((node.down != nullptr) and ((*(node.down)).symbol != node.symbol)) or 
-                     ((node.y == this->height-1) and (node.down == nullptr)))) or
-                     ((node.right != nullptr) and (node.down != nullptr) and ((*(node.right)).down != nullptr) and
-                       ((*(node.right)).symbol == node.symbol) and ((*(node.down)).symbol == node.symbol) and
-                       ((*((*(node.right)).down)).symbol == node.symbol) )) {sides++;}
-                // if ((((node.left != nullptr) and ((*(node.left)).symbol != node.symbol)) or 
-                //     ((node.x == 0) and (node.left == nullptr))) and
-                //     (((node.down != nullptr) and ((*(node.down)).symbol != node.symbol)) or 
-                //     ((node.y == this->height-1) and (node.down == nullptr)))) {sides++;}
-                // if ((((node.right != nullptr) and ((*(node.right)).symbol != node.symbol)) or 
-                //     ((node.x == this->width-1) and (node.right == nullptr))) and
-                //     (((node.up != nullptr) and ((*(node.up)).symbol != node.symbol)) or 
-                //     ((node.y == 0) and (node.up == nullptr)))) {sides++;}
-                // if ((((node.right != nullptr) and ((*(node.right)).symbol != node.symbol)) or 
-                //     ((node.x == this->width-1) and (node.right == nullptr))) and
-                //     (((node.down != nullptr) and ((*(node.down)).symbol != node.symbol)) or 
-                //     ((node.y == this->height-1) and (node.down == nullptr)))) {sides++;}
+                // no neighbours
+                if (not node.HasAnyNeighbour())
+                {
+                    sides = 4;
+                    break;
+                }
+
+                // single neighbour
+                if (node.GetNumberOfNeighbours() == 1)
+                {
+                    sides = sides + 2;
+                }
+                // two neighbours (L-shape)
+                else if ((node.HasNeighbour(node.left)) and (not node.HasNeighbour(node.right)) and
+                     (node.HasNeighbour(node.up)) and (not node.HasNeighbour(node.down)))
+                {
+                    sides = sides + ((node.HasNeighbour(node.left->up)) ? 1 : 2);
+                }
+                else if ((node.HasNeighbour(node.left)) and (not node.HasNeighbour(node.right)) and
+                     (not node.HasNeighbour(node.up)) and (node.HasNeighbour(node.down)))
+                {
+                    sides = sides + ((node.HasNeighbour(node.left->down)) ? 1 : 2);
+                }
+                else if ((not node.HasNeighbour(node.left)) and (node.HasNeighbour(node.right)) and
+                     (node.HasNeighbour(node.up)) and (not node.HasNeighbour(node.down)))
+                {
+                    sides = sides + ((node.HasNeighbour(node.right->up)) ? 1 : 2);
+                }
+                else if ((not node.HasNeighbour(node.left)) and (node.HasNeighbour(node.right)) and
+                     (not node.HasNeighbour(node.up)) and (node.HasNeighbour(node.down)))
+                {
+                    sides = sides + ((node.HasNeighbour(node.right->down)) ? 1 : 2);
+                }
+                
+                // three neighbours (3-shape)
+                else if (node.GetNumberOfNeighbours() == 3)
+                {
+                    if (node.HasNeighbour(node.left) and node.HasNeighbour(node.right))
+                    {
+                        if (node.HasNeighbour(node.up))
+                        {
+                            sides = sides + static_cast<size_t>(not node.HasNeighbour(node.left->up)) +
+                                            static_cast<size_t>(not node.HasNeighbour(node.right->up)) +
+                                            ((node.HasNeighbour(node.down)) ? 
+                                                (static_cast<size_t>(node.HasNeighbour(node.left->down)) +
+                                                 static_cast<size_t>(node.HasNeighbour(node.right->down))) : 0);
+                        }
+                        else
+                        {
+                            sides = sides + ((node.HasNeighbour(node.up)) ? 
+                                            (static_cast<size_t>(node.HasNeighbour(node.left->up)) +
+                                            static_cast<size_t>(node.HasNeighbour(node.right->up))) : 0) +
+                                            static_cast<size_t>(not node.HasNeighbour(node.left->down)) +
+                                            static_cast<size_t>(not node.HasNeighbour(node.right->down));
+                        }
+                    }
+                    else if (node.HasNeighbour(node.up) and node.HasNeighbour(node.down))
+                    {
+                        if (node.HasNeighbour(node.left))
+                        {
+                            sides = sides + static_cast<size_t>(not node.HasNeighbour(node.left->up)) +
+                                            ((node.HasNeighbour(node.right)) ?
+                                            (static_cast<size_t>(node.HasNeighbour(node.right->up))) : 0) +
+                                            static_cast<size_t>(not node.HasNeighbour(node.left->down)) +
+                                            ((node.HasNeighbour(node.right)) ?
+                                            (static_cast<size_t>(node.HasNeighbour(node.right->down))) : 0);
+                        }
+                        else
+                        {
+                            sides = sides + ((node.HasNeighbour(node.left)) ?
+                                            (static_cast<size_t>(node.HasNeighbour(node.left->up))) : 0) +
+                                            static_cast<size_t>(not node.HasNeighbour(node.right->up)) +
+                                            ((node.HasNeighbour(node.left)) ?
+                                            (static_cast<size_t>(node.HasNeighbour(node.left->down))) : 0) +
+                                            static_cast<size_t>(not node.HasNeighbour(node.right->down));
+                        }
+                    }
+                }
+
+                // four neighbours (+shape)
+                else if (node.GetNumberOfNeighbours() == 4)
+                {
+                    sides = sides + static_cast<size_t>(not node.HasNeighbour(node.left->up)) +
+                                    static_cast<size_t>(not node.HasNeighbour(node.left->down)) +
+                                    static_cast<size_t>(not node.HasNeighbour(node.right->up)) +
+                                    static_cast<size_t>(not node.HasNeighbour(node.right->down));
+                }
+                
             }
             std::cout << "Region: " << this->fences[i].fence[0].symbol << ", area: " << this->fences[i].fence.size() << 
                          ", perimeter: " << perimeter << ", sides: " << sides << "\n";
@@ -266,8 +334,8 @@ int main()
     std::filesystem::path cwd = std::filesystem::current_path().filename();
     cout << "Hello World: " << cwd << endl;
 
-    string filename("example_input"); // 1206
-    // string filename("input"); 
+    // string filename("example_input"); // 1206
+    string filename("input"); 
     ifstream input_file(filename);
 
     string line{};
