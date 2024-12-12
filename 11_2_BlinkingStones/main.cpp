@@ -72,7 +72,8 @@ struct Stones
 {
     std::vector<Stone> stones;
     std::vector<std::vector<size_t>> lookupTable;
-    static constexpr size_t LOOKUP_TABLE_SIZE = 32; // up to 30
+    static constexpr size_t LOOKUP_TABLE_SIZE = 35; // up to 33
+    static constexpr size_t LOOKUP_TABLE_LEVELS_SIZE = 100;
 
     static std::string const ToString(const Stones &stones)
     {
@@ -159,7 +160,7 @@ struct Stones
             newStones.clear();
             for (size_t i=0; i<this->stones.size(); i++)
             {
-                if (this->stones[i].number < 1000)
+                if (this->stones[i].number < LOOKUP_TABLE_LEVELS_SIZE)
                 {
                     // std::cout << "here1 i: " << i << ", number: " << this->stones[i].number << ", num: " << num
                     //           << ", lookup: " << this->lookupTable[this->stones[i].number][num] << "\n";
@@ -202,12 +203,11 @@ struct Stones
 
     void CreateLookUpTable()
     {
-        for (size_t i=0; i<1000; i++)
+        for (size_t i=0; i<LOOKUP_TABLE_LEVELS_SIZE; i++)
         {
             std::cout << "i: " << i << "\n";
             this->stones = {Stone(i)};
             std::vector<size_t> singleLookUpTable{};
-            // for (size_t j=0; j<30; j++)
             for (size_t j=0; j<LOOKUP_TABLE_SIZE; j++)
             {
                 this->Blink();
