@@ -33,6 +33,7 @@
 #include <deque>
 #include <climits>
 #include <thread>
+#include <limits>
 
 using namespace std;
 
@@ -60,14 +61,29 @@ struct Claw
 {
     Button buttonA;
     Button buttonB;
-    size_t prizeX;
-    size_t prizeY;
+    uint64_t prizeX;
+    uint64_t prizeY;
     size_t x=0;
     size_t y=0;
+    static constexpr uint64_t CONVERSION_ERROR = 10000000000000;
+    uint64_t maxButtonPress;
 
     Claw () = default;
     Claw (const Button &_buttonA, const Button &_buttonB, const size_t _prizeX, const size_t _prizeY) :
-            buttonA(_buttonA), buttonB(_buttonB), prizeX(_prizeX), prizeY(_prizeY) {}
+            buttonA(_buttonA), buttonB(_buttonB), 
+            prizeX(_prizeX + Claw::CONVERSION_ERROR), prizeY(_prizeY + Claw::CONVERSION_ERROR) {}
+
+    void CalculateMaxButtonPress()
+    {
+        this->prizeX = this->prizeX + Claw::CONVERSION_ERROR;
+        this->prizeY = this->prizeY + Claw::CONVERSION_ERROR;
+        std::vector<uint64_t> localMaxim{};
+        localMaxim.push_back(this->prizeX / this->buttonA.xMove);
+        localMaxim.push_back(this->prizeX / this->buttonB.xMove);
+        localMaxim.push_back(this->prizeY / this->buttonA.xMove);
+        localMaxim.push_back(this->prizeY / this->buttonB.xMove);
+        this->maxButtonPress = *std::max_element(localMaxim.cbegin(), localMaxim.cend());
+    }
 
     static std::string const ToString(const Claw &claw)
     {
@@ -123,6 +139,7 @@ struct Machines
                 ss.str(line.substr(line.rfind("=") + 1));
                 ss >> claw.prizeY;
 
+                claw.CalculateMaxButtonPress();
                 this->claws.push_back(claw);
                 claw = Claw();
             }
@@ -140,20 +157,21 @@ struct Machines
     size_t CalculateClaw(const Claw &claw)
     {
         std::vector<size_t> possibleCosts{};
-        for (size_t a=0; a<=Machines::MAX_BUTTON_PRESS; a++)
+
+        // magic
+        double a = (static_cast<double>(claw.buttonB.xMove) * claw.prizeY - static_cast<double>(claw.buttonB.yMove) * claw.prizeX) /
+                        (claw.buttonA.yMove * claw.buttonB.xMove - static_cast<double>(claw.buttonA.xMove) * claw.buttonB.yMove);
+        double b = (static_cast<double>(claw.prizeX) - static_cast<double>(claw.buttonA.xMove) * a) / claw.buttonB.xMove;
+
+        double af{};
+        double bf{};
+
+        if ((std::modf(a, &af) == 0) and (std::modf(b, &bf) == 0))
         {
-            for (size_t b=0; b<=Machines::MAX_BUTTON_PRESS; b++)
-            {
-                if ( ((a * claw.buttonA.xMove + b * claw.buttonB.xMove) == claw.prizeX) and
-                     ((a * claw.buttonA.yMove + b * claw.buttonB.yMove) == claw.prizeY))
-                {
-                    std::cout << a << " pushed A button and " << b << " pushes B button for " << 
-                                 claw.prizeX << ":" << claw.prizeY << "\n";
-                    possibleCosts.push_back(a * Machines::BUTTON_A_COSTS + b * Machines::BUTTON_B_COSTS);
-                }
-            }
+            return static_cast<uint64_t>(a) * Machines::BUTTON_A_COSTS + 
+                    static_cast<uint64_t>(b) * Machines::BUTTON_B_COSTS;
         }
-        return possibleCosts.empty() ? 0 : *std::min_element(possibleCosts.cbegin(), possibleCosts.cend());
+        return 0;
     }
 
     void Calculate()
@@ -163,11 +181,11 @@ struct Machines
         {
             // skipping case when there is not possible to win the prize
             // using max 100 button press
-            if (this->IsNotPossibleToWin(claw))
-            {
-                std::cout << "Skipping..." << claw.prizeX << ":" << claw.prizeY << "\n";
-                continue;
-            }
+            // if (this->IsNotPossibleToWin(claw))
+            // {
+            //     std::cout << "Skipping..." << claw.prizeX << ":" << claw.prizeY << "\n";
+            //     continue;
+            // }
             total = total + this->CalculateClaw(claw);
         }
         std::cout << "total: " << total << "\n";
@@ -191,8 +209,8 @@ int main()
     std::filesystem::path cwd = std::filesystem::current_path().filename();
     cout << "Hello World: " << cwd << endl;
 
-    // string filename("example_input"); // 480
-    string filename("input");  // 23684 too low
+    // string filename("example_input"); // 875318608908
+    string filename("input");
     ifstream input_file(filename);
 
     string line{};
@@ -212,8 +230,11 @@ int main()
 
     Machines machines{};
     machines.ParseInput(lines);
-    // std::cout << Machines::ToString(machines.claws) << "\n";
+    std::cout << Machines::ToString(machines.claws) << "\n";
     machines.Calculate();
+
+    // std::cout << "max for size_t: " << std::numeric_limits<int>::max() << "\n";
+    // std::cout << "max for uint64_t: " << std::numeric_limits<uint64_t>::max() << "\n";
 
     return EXIT_SUCCESS;
 }
