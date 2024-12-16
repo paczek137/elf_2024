@@ -52,7 +52,18 @@ struct Tile
 
     bool IsBox() const 
     {
-        return this->symbol == 'O';
+        // return this->symbol == 'O';
+        return (this->symbol == '[') or (this->symbol == ']');
+    }
+
+    bool IsLeftBox() const 
+    {
+        return (this->symbol == '[');
+    }
+
+    bool IsRightBox() const 
+    {
+        return (this->symbol == ']');
     }
 
     bool IsWall() const 
@@ -63,6 +74,67 @@ struct Tile
     bool IsFree() const
     {
         return this->symbol == '.';
+    }
+
+    bool IsMoveAbleUp()
+    {
+        if (this->up->IsFree())
+        {
+            return true;
+        }
+        else if (this->up->IsWall())
+        {
+            return false;
+        }
+        // box
+        std::cout << "box\n";
+        if (this->up->IsLeftBox())
+        {
+            if (this->up->IsMoveAbleUp() and this->up->right->IsMoveAbleUp())
+            {
+                return true;
+            }
+        }
+        else if (this->up->IsRightBox())
+        {
+            std::cout << "is right box\n";
+            if (this->up->IsMoveAbleUp() and this->up->left->IsMoveAbleUp())
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    bool IsMoveAbleDown()
+    {
+        if (this->down->IsFree())
+        {
+            return true;
+        }
+        else if (this->down->IsWall())
+        {
+            return false;
+        }
+        // box
+        // std::cout << "box\n";
+        if (this->down->IsLeftBox())
+        {
+            if (this->down->IsMoveAbleDown() and this->down->right->IsMoveAbleDown())
+            {
+                return true;
+            }
+        }
+        else if (this->down->IsRightBox())
+        {
+            if (this->down->IsMoveAbleDown() and this->down->left->IsMoveAbleDown())
+            {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     bool MoveLeft()
@@ -131,12 +203,70 @@ struct Tile
         }
         // box
         // std::cout << "box\n";
-        if (this->up->MoveUp())
+        if (this->up->IsLeftBox())
         {
-            (*(this->up)).symbol = this->symbol;
-            this->symbol = '.';
-            return true;
+            if (this->up->IsMoveAbleUp() and this->up->right->IsMoveAbleUp())
+            {
+                if (this->up->MoveUp() and this->up->right->MoveUp())
+                {
+                    (*(this->up)).symbol = this->symbol;
+                    this->symbol = '.';
+                    return true;
+                }
+            }
         }
+        else if (this->up->IsRightBox())
+        {
+            if (this->up->IsMoveAbleUp() and this->up->left->IsMoveAbleUp())
+            {
+                if (this->up->MoveUp() and this->up->left->MoveUp())
+                {
+                    (*(this->up)).symbol = this->symbol;
+                    this->symbol = '.';
+                    return true;   
+                }
+            }
+        }
+
+
+        // if (this->up->IsMoveAbleUp())
+        // {
+        //     std::cout << "is moveable up\n";
+        //     if (this->up->IsLeftBox())
+        //     {
+        //         if (this->up->MoveUp() and this->up->right->MoveUp())
+        //         {
+        //             (*(this->up)).symbol = this->symbol;
+        //             this->symbol = '.';
+        //             return true;
+        //         }
+        //     }
+        //     else if (this->up->IsRightBox())
+        //     {
+        //         if (this->up->MoveUp() and this->up->left->MoveUp())
+        //         {
+        //             (*(this->up)).symbol = this->symbol;
+        //             this->symbol = '.';
+        //             return true;   
+        //         }
+        //     }
+        //     return false;
+        // }
+
+        // if (this->up->IsLeftBox())
+        // {
+        //     if (this->up->MoveUp() and )
+        // }
+        // else
+        // {
+
+        // }
+        // if (this->up->MoveUp())
+        // {
+        //     (*(this->up)).symbol = this->symbol;
+        //     this->symbol = '.';
+        //     return true;
+        // }
         return false;
     }
 
@@ -154,13 +284,32 @@ struct Tile
             // std::cout << "wall\n";
             return false;
         }
+
         // box
         // std::cout << "box\n";
-        if (this->down->MoveDown())
+        if (this->down->IsLeftBox())
         {
-            (*(this->down)).symbol = this->symbol;
-            this->symbol = '.';
-            return true;
+            if (this->down->IsMoveAbleDown() and this->down->right->IsMoveAbleDown())
+            {
+                if (this->down->MoveDown() and this->down->right->MoveDown())
+                {
+                    (*(this->down)).symbol = this->symbol;
+                    this->symbol = '.';
+                    return true;
+                }
+            }
+        }
+        else if (this->down->IsRightBox())
+        {
+            if (this->down->IsMoveAbleDown() and this->down->left->IsMoveAbleDown())
+            {
+                if (this->down->MoveDown() and this->down->left->MoveDown())
+                {
+                    (*(this->down)).symbol = this->symbol;
+                    this->symbol = '.';
+                    return true;   
+                }
+            }
         }
         return false;
     }
@@ -211,18 +360,28 @@ struct Warehouse
             {
                 if (parsingInitialAreaDimensions)
                 {
-                    this->width = input[y].size();
+                    this->width = input[y].size() * 2;
                     // this->height = input.size();
                     parsingInitialAreaDimensions = false;
                 }
+                size_t widerX=0;
                 for (size_t x=0; x<input[y].size(); x++)
                 {
-                    this->tiles.emplace_back(x, y, input[y][x]);
                     if (input[y][x] == '@')
                     {
-                        idRobot = y*this->width + x;
-                        // this->robot = &this->tiles[y*this->width + x];
+                        idRobot = y*this->width + widerX;
+                        this->tiles.emplace_back(widerX++, y, input[y][x]);
+                        this->tiles.emplace_back(widerX++, y, '.');
+                        continue;
                     }
+                    if (input[y][x] == 'O')
+                    {
+                        this->tiles.emplace_back(widerX++, y, '[');
+                        this->tiles.emplace_back(widerX++, y, ']');
+                        continue;   
+                    }
+                    this->tiles.emplace_back(widerX++, y, input[y][x]);
+                    this->tiles.emplace_back(widerX++, y, input[y][x]);
                 }
                 continue;
             }
@@ -241,6 +400,8 @@ struct Warehouse
         this->AddNeighbours();
         std::cout << "width: " << this->width << ", height: " << this->height << "\n";
         std::cout << "robot at x: " << this->robot->x << ", y: " << this->robot->y << "\n";
+        std::cout << "instructions : " << this->instructions.size() << "\n";
+        std::cout << "Initial:\n" << Warehouse::ToString(this->tiles) << "\n";
     }
 
     void AddNeighbours()
@@ -274,7 +435,7 @@ struct Warehouse
     {
         if (instruction.symbol == '<')
         {
-            // std::cout << "Moving left\n";
+            std::cout << "Moving left\n";
             if ( (*(this->robot)).MoveLeft())
             {
                 this->robot = &this->GetTile(this->robot->x-1, this->robot->y);
@@ -282,7 +443,7 @@ struct Warehouse
         }
         else if (instruction.symbol == '>')
         {
-            // std::cout << "Moving right\n";
+            std::cout << "Moving right\n";
             if ( (*(this->robot)).MoveRight())
             {
                 this->robot = &this->GetTile(this->robot->x+1, this->robot->y);
@@ -290,7 +451,7 @@ struct Warehouse
         }
         else if (instruction.symbol == '^')
         {
-            // std::cout << "Moving up\n";
+            std::cout << "Moving up\n";
             if ( (*(this->robot)).MoveUp())
             {
                 this->robot = &this->GetTile(this->robot->x, this->robot->y-1);
@@ -298,7 +459,7 @@ struct Warehouse
         }
         else if (instruction.symbol == 'v')
         {
-            // std::cout << "Moving down\n";
+            std::cout << "Moving down\n";
             if ( (*(this->robot)).MoveDown())
             {
                 this->robot = &this->GetTile(this->robot->x, this->robot->y+1);
@@ -309,9 +470,11 @@ struct Warehouse
 
     void ExecuteInstructions()
     {
+        size_t i=0;
         for (const auto &instruction : this->instructions)
         {
             this->ExecuteInstruction(instruction);
+            // if (i++ > 538) break;
             // std::cout << Warehouse::ToString(this->tiles) << "\n";
         }
         std::cout << Warehouse::ToString(this->tiles) << "\n";
@@ -322,7 +485,7 @@ struct Warehouse
         size_t total=0;
         for (const auto &tile : this->tiles)
         {
-            if (tile.IsBox())
+            if (tile.IsLeftBox())
             {
                 total = total + tile.x + 100 * tile.y;
             }
@@ -361,8 +524,8 @@ int main()
     cout << "Hello World: " << cwd << endl;
 
     // std::string filename("example_input_small"); // 2028
-    std::string filename("example_input"); // 9021
-    // std::string filename("input");
+    // std::string filename("example_input"); // 9021
+    std::string filename("input"); // 1305559 is too low
     ifstream input_file(filename);
 
     string line{};
@@ -382,7 +545,7 @@ int main()
 
     Warehouse warehouse{};
     warehouse.ParseInput(lines);
-    std::cout << Warehouse::ToString(warehouse.tiles) << "\n";
+    // std::cout << Warehouse::ToString(warehouse.tiles) << "\n";
     std::cout << Warehouse::ToString(warehouse.instructions) << "\n";
     warehouse.ExecuteInstructions();
     warehouse.CalculateSumOfBoxes();
